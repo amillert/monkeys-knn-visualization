@@ -1,4 +1,5 @@
 import argparse
+import sys
 import math
 import re
 
@@ -33,7 +34,9 @@ def euclidean_distance(p, q):
     return math.sqrt(sum([(p_i - q_i) ** 2 for p_i, q_i in zip(p, q)]))
 
 
-def get_cli_args():
+def get_cli_args(args: list = None):  # better without type for getting values
+    args = sys.argv[1:] if not args else args
+
     argument_parser = argparse.ArgumentParser(
         prog="monkeys",
         description="Argument parser of the Monkeys' project",
@@ -67,4 +70,4 @@ def get_cli_args():
         nargs="+"
     )
 
-    return argument_parser.parse_args()
+    return argument_parser.parse_args(args)
