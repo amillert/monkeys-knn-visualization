@@ -4,6 +4,7 @@ from monkey_classify import preprocess
 from monkey_classify import save_to_csv, read_monkeys_from_csv
 from utils import get_cli_args
 
+# from argparse import ArgumentError
 import pandas as pd
 import unittest
 
@@ -14,7 +15,9 @@ class TestMonkey(unittest.TestCase):
     m1 = Monkey("#AB1234", 12, 40.5)
     m2 = Monkey("#AB1234", 12, 40.5, "gorilla")
     base_cols = ["color", "size", "weight", "species"]
+    save_cols = ["fur_color_int", "size", "weight", "species"]
 
+    # passes
     def test_monkey_str(self):
         expected_m1 = f"Monkey(fur: #AB1234; size: 12; weight: 40.5; species: )"
         expected_m2 = f"Monkey(fur: #AB1234; size: 12; weight: 40.5; species: gorilla)"
@@ -22,6 +25,7 @@ class TestMonkey(unittest.TestCase):
         self.assertEqual(str(self.m2), expected_m2)
         self.assertNotEqual(str(self.m1), expected_m2)
 
+    # passes
     def test_monkey_color_exception(self):
         # 'G' not hex
         with self.assertRaises(ValueError):
@@ -35,9 +39,11 @@ class TestMonkey(unittest.TestCase):
         with self.assertRaises(ValueError):
             Monkey("#Af1234", 12, 40.5)
 
+    # passes
     def test_monkey_bmi(self):
         self.assertEqual(self.m1.compute_bmi(), self.m1.weight/self.m1.size/self.m1.size)
 
+    # passes
     def test_read_monkeys_csv(self):
         expected_cols = {"color", "size", "weight", "species"}
 
@@ -47,6 +53,13 @@ class TestMonkey(unittest.TestCase):
         read_cols = set(read("./monkeys.csv").columns)
         self.assertEqual(expected_cols, read_cols)
 
+    # passes
+    def test_read_monkeys_csv_strict(self):
+        # why do tests in read_monkeys for errors require with, while test_argparser doesn't?
+        with self.assertRaises(ValueError):
+            read("./monkeys.csv", strict=True)
+
+    # passes
     def test_df_preprocessing(self):
         data_pre = [
             ["#aaaaaa", 0.14, 14.5, "gorilla"],
@@ -68,7 +81,7 @@ class TestMonkey(unittest.TestCase):
         ]
         df_post_ref = pd.DataFrame(columns=self.base_cols + ["monkey", "fur_color_int", "bmi"], data=data_post)
 
-        df_post = preprocess(df_pre, self.base_cols)
+        df_post = preprocess(df_pre)
 
         self.assertEqual(df_post.shape, df_post_ref.shape)
         self.assertEqual({str(x) for x in df_post.monkey} & {str(x) for x in df_post_ref.monkey},
@@ -77,31 +90,54 @@ class TestMonkey(unittest.TestCase):
         self.assertEqual([str(x) for x in df_post.fur_color_int], [str(x) for x in df_post_ref.fur_color_int])
 
     def test_save_with_read_csv(self):
-        df = pd.DataFrame([["0", 1.0, 2.0, "3"], ["4", 5.0, 6.0, "7"]], columns=self.base_cols)
-        save_to_csv(df, ".tmp.csv")
-        dff = read_monkeys_from_csv(".tmp.csv")
+        tmp_path = ".tmp.csv"
+
+        df = pd.DataFrame([[0, 1.0, 2.0, "3"], [4, 5.0, 6.0, "7"]], columns=self.save_cols)
+        save_to_csv(df, tmp_path)
+        dff = read_monkeys_from_csv(tmp_path)
         self.assertEqual(df.shape, dff.shape)
-        for col in self.base_cols:
+        for col in self.save_cols:
             self.assertEqual(list(df[col].values), list(dff[col].values))
+        import os
+        os.remove(tmp_path)
 
     # TODO 1: tests for euclidean
     # TODO 2: tests for knn
 
     def test_argparser(self):
-        args = ['-i', 'monkeys.csv', '-o', 'out.csv', '-d', 'bmi', 'fur_color_int', 'weight']
-        self.assertTrue(get_cli_args(args).in_path)
-        self.assertTrue(get_cli_args(args).out_path)
-        self.assertTrue(get_cli_args(args).dims)
+        args = ["knn", '-i', 'monkeys.csv', '-o', 'out.csv', '-d', 'bmi', 'fur_color_int', 'weight']
+        parsed, sub = get_cli_args(args)
+        self.assertEqual(sub, "knn")
+        self.assertTrue(parsed.in_path)
+        self.assertTrue(parsed.out_path)
+        self.assertTrue(parsed.dims)
 
-        args = ["-i", "monkeys.csv", "-o", "out.csv", "-d", "bmi"]
-        self.assertRaises(TypeError, get_cli_args(args).dims)
+        args = ["knn", "-i", "monkeys.csv", "-o", "out.csv", "-d", "bmi"]
+        parsed, sub = get_cli_args(args)
+        self.assertRaises(Exception, parsed.dims)
 
-        # TODO: find what type of error it is
-        # args = ["-i", "monkeys.csv", "-o", "out.csv", "-d", "bmi", "coś_tam"]
+        args = ["visual", '-i', 'out.csv', '-f', 'size', 'fur_color_int']
+        parsed, sub = get_cli_args(args)
+        self.assertEqual(sub, "visual")
+        self.assertTrue(parsed.in_path)
+        self.assertTrue(parsed.features)
+        self.assertTrue(len(parsed.features))
+
+        # TODO: why does it not work? Because it's already handled?
+        # args = ["visual", '-i', 'out.csv', '-f', 'size']  # valid, but too few
+        # self.assertRaises(ArgumentError, get_cli_args(args))
+
+        # args = ["visual", '-i', 'out.csv', '-f', 'weight', 'fur_color_int', 'size']  # all valid but too many
+        # self.assertRaises(ArgumentError, get_cli_args(args))
+
+        # args = ["visual", '-i', 'out.csv', '-f', 'weight', 'size', 'bmi']  # enough, but not from list
+        # self.assertRaises(ArgumentError, get_cli_args(args))
+
+        # args = ["knn", "-i", "monkeys.csv", "-o", "out.csv", "-d", "bmi", "coś_tam"]
         # import argparse
-        # self.assertRaises(argparse.ArgumentError, get_cli_args(args).dims)
+        # self.assertRaises(ArgumentError, get_cli_args(args).dims)
 
 
 if __name__ == "__main__":
-    args = ["-i", "monkeys.csv", "-o", "out.csv", "-d", "bmi", "fur_color_int", "weight"]
+    args = ["knn", "-i", "monkeys.csv", "-o", "out.csv", "-d", "bmi", "fur_color_int", "weight"]
     unittest.main(argv=args)

@@ -44,7 +44,13 @@ def get_cli_args(args: list = None):  # better without type for getting values
         allow_abbrev=True
     )
     argument_parser.version = "0.1"
-    argument_parser.add_argument(
+
+    subparsers = argument_parser.add_subparsers()
+
+    knn_subparser = subparsers.add_parser("knn", help="Subparser for the KNN evaluation.")
+    visualize_subparser = subparsers.add_parser("visual", help="Subparser for visualization.")
+
+    knn_subparser.add_argument(
         "-i",
         "--in_path",
         action="store",
@@ -52,7 +58,7 @@ def get_cli_args(args: list = None):  # better without type for getting values
         help="Provide an input csv file to read monkeys",
         required=True,
     )
-    argument_parser.add_argument(
+    knn_subparser.add_argument(
         "-o",
         "--out_path",
         action="store",
@@ -60,7 +66,7 @@ def get_cli_args(args: list = None):  # better without type for getting values
         help="Provide an output csv file to save updated monkeys",
         required=True,
     )
-    argument_parser.add_argument(
+    knn_subparser.add_argument(
         "-d",
         "--dims",
         action="store",
@@ -70,4 +76,23 @@ def get_cli_args(args: list = None):  # better without type for getting values
         nargs="+"
     )
 
-    return argument_parser.parse_args(args)
+    visualize_subparser.add_argument(
+        "-i",
+        "--in_path",
+        action="store",
+        type=str,
+        help="Provide an input csv file to visualize",
+        required=True,
+    )
+    visualize_subparser.add_argument(
+        "-f",
+        "--features",
+        action="store",
+        type=str,
+        help="Provide two features to visualize",
+        choices=["fur_color_int", "weight", "size"],  # cause saved df has these, and only this data has no nans
+        required=True,
+        nargs=2
+    )
+
+    return argument_parser.parse_args(args), args[0]

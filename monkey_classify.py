@@ -1,4 +1,5 @@
 from monkey_model import Monkey
+from monkey_visualize import scatter_plot
 import utils
 
 from collections import Counter
@@ -6,6 +7,7 @@ import pandas as pd
 pd.options.display.width = 0
 
 COLS = ["color", "size", "weight", "species"]
+OUT_COLS = ["fur_color_int", "size", "weight", "species"]
 
 
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
@@ -14,16 +16,23 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df = df[df["size"].map(lambda l: l > 0.0)]
     df = df[df["weight"].map(lambda l: l > 0.0)]
     df["monkey"] = df[COLS].apply(Monkey.monkify, axis=1)
-    df["fur_color_int"] = df.color.map(lambda l: int(l[1:], 16))
+    df["fur_color_int"] = df.color.map(lambda l: utils.hex2int(l[1:]))
     df["bmi"] = df.monkey.map(lambda l: l.compute_bmi())
     return df
 
 
-def read_monkeys_from_csv(csv_path: str) -> pd.DataFrame:
+def read_monkeys_from_csv(csv_path: str, strict: bool = False) -> pd.DataFrame:
     df = pd.read_csv(csv_path, header=0)
-    if set(df.columns) != set(COLS):
+    if strict:
+        if df.shape != df.dropna(inplace=False).shape:
+            raise ValueError
+    elif not set(df.columns.to_list()) <= set(COLS) | set(OUT_COLS):
         raise ValueError
-    df = df.astype({"species": str, "size": float, "weight": float, "color": str})
+
+    if "color" in df.columns:
+        df = df.astype({"species": str, "size": float, "weight": float, "color": str})
+    elif "fur_color_int" in df.columns:
+        df = df.astype({"species": str, "size": float, "weight": float, "fur_color_int": int})
     return df
 
 
@@ -65,25 +74,35 @@ def compute_knn(df: pd.DataFrame, k: int = 10, dimensions: list = None) -> pd.Da
 
 
 def save_to_csv(df: pd.DataFrame, csv_filename: str) -> None:
-    df[COLS].to_csv(csv_filename, sep=",", header=True, index=False)
+    df[OUT_COLS].to_csv(csv_filename, sep=",", header=True, index=False)
 
 
 def main() -> None:
-    args = utils.get_cli_args()
+    args, subparser = utils.get_cli_args()
 
     try:
-        if args.dims and len(args.dims) < 2:
+        if subparser == "knn" and args.dims and len(args.dims) < 2:
             raise ValueError
     except ValueError:
         print(f"Too few dimensions provided; at least 2 required!")
     else:
-        df = preprocess(read_monkeys_from_csv(args.in_path))
-        print(f"Shape before joining: {df.shape}")
+        if subparser == "knn":
+            df = preprocess(read_monkeys_from_csv(args.in_path))
+            print(f"Shape before joining: {df.shape}")
 
-        joined_df = compute_knn(df)
-        print(f"Shape after joining: {joined_df.shape}")
+            joined_df = compute_knn(df)
+            print(f"Shape after joining: {joined_df.shape}")
 
-        save_to_csv(joined_df, args.out_path)
+            save_to_csv(joined_df, args.out_path)
+        elif subparser == "visual":
+            try:
+                df = read_monkeys_from_csv(args.in_path, strict=True)
+            except ValueError:
+                print("Found nan values")
+            else:
+                X, Y = list(df[args.features[0]].values), list(df[args.features[1]].values)
+                labels = list(df["species"].values)
+                scatter_plot(X, Y, labels)
 
 
 if __name__ == "__main__":
