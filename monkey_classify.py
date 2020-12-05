@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from monkey_model import Monkey
 from monkey_visualize import scatter_plot
 import utils
