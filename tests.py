@@ -2,7 +2,7 @@ from monkey_model import Monkey
 from monkey_classify import read_monkeys_from_csv as read
 from monkey_classify import preprocess
 from monkey_classify import save_to_csv, read_monkeys_from_csv
-from utils import get_cli_args
+from utils import get_cli_args, euclidean_distance
 
 # from argparse import ArgumentError
 import pandas as pd
@@ -101,7 +101,19 @@ class TestMonkey(unittest.TestCase):
         import os
         os.remove(tmp_path)
 
-    # TODO 1: tests for euclidean
+    def test_euclidean_distance(self):
+        p2D = [0.3, 0.5]
+        q2D = [1.3, 1.2]
+        self.assertAlmostEqual(euclidean_distance(p2D, q2D), 1.220656, 6)
+
+        p3D = [0.3, 0.5, 0.8]
+        q3D = [1.3, 0.4, 1.2]
+        self.assertAlmostEqual(euclidean_distance(p3D, q3D), 1.081665, 6)
+
+        p0 = [0.0] * 40
+        q0 = [0.0] * 40
+        self.assertEqual(euclidean_distance(p0, q0), 0)
+
     # TODO 2: tests for knn
 
     def test_argparser(self):
