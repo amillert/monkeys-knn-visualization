@@ -2,3 +2,6 @@
 __*/
 *csv
 */*png
+build/
+dist/
+*egg*
