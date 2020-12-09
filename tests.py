@@ -117,6 +117,31 @@ class TestMonkey(unittest.TestCase):
         q0 = [0.0] * 40
         self.assertEqual(utl.euclidean_distance(p0, q0), 0)
 
+    def test_knn(self):
+        df_empty_init = [
+            ["#d75820", 1.342, 84.632, "nan"],
+            ["#c65622", 0.759, 47.952, "nan"],
+            ["#c65622", 1.474, 51.925, "nan"],
+            ["#111911", 0.710, 46.961, "nan"]
+        ]
+
+        df_nonempty_init = [
+            ["#2e1628", 1.012, 46.063, "orangutan"],
+            ["#210180", 1.657, 212.974, "gorilla"],
+            ["#ce69ff", 1.008, 47.306, "orangutan"],
+            ["#12211a", 0.770, 45.306, "bonobo"]
+        ]
+
+        df = pd.DataFrame(df_nonempty_init + df_empty_init, columns=self.base_cols)
+        preprocessed = mc.preprocess(df)
+        knned = mc.compute_knn(preprocessed, 3)
+
+        self.assertEqual(preprocessed.shape, knned.shape)
+        self.assertEqual(
+            list(knned.species),
+            ["orangutan", "gorilla", "orangutan", "bonobo", "orangutan", "orangutan", "orangutan", "bonobo"]
+        )
+
     def test_argparser(self):
         # from argparse import ArgumentError
 
