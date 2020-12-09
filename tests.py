@@ -142,6 +142,12 @@ class TestMonkey(unittest.TestCase):
             ["orangutan", "gorilla", "orangutan", "bonobo", "orangutan", "orangutan", "orangutan", "bonobo"]
         )
 
+        knned2 = mc.compute_knn(preprocessed, 3, ["R", "B"])
+        self.assertEqual(
+            list(knned2.species),
+            ["orangutan", "gorilla", "orangutan"] + ["bonobo"] * 5
+        )
+
     def test_argparser(self):
         # from argparse import ArgumentError
 
