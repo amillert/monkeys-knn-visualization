@@ -19,11 +19,11 @@ def getRfromHex2int(s: str) -> int:
 
 
 def getGfromHex2int(s: str) -> int:
-    return hex2int(s[4:6])
+    return hex2int(s[3:5])
 
 
 def getBfromHex2int(s: str) -> int:
-    return hex2int(s[6:])
+    return hex2int(s[5:])
 
 
 def getRGBChannels2int(s: str) -> (int, int, int):
